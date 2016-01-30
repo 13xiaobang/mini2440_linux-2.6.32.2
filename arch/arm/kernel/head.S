@@ -222,18 +222,19 @@ __create_page_tables:
 	/*
 	 * Clear the 16K level 1 swapper page table
 	 */
-	mov	r0, r4
+	mov	r0, r4     /* r4 = 0x50004000*/
 	mov	r3, #0
-	add	r6, r0, #0x4000
+	add	r6, r0, #0x4000   /*r6 = 0x50008000*/
 1:	str	r3, [r0], #4
 	str	r3, [r0], #4
 	str	r3, [r0], #4
 	str	r3, [r0], #4
 	teq	r0, r6
-	bne	1b
+	bne	1b    			/* memset(0x50004000, 0x0, 0x4000);*/
 
 	ldr	r7, [r10, #PROCINFO_MM_MMUFLAGS] @ mm_mmuflags
-
+	/* r7 = 0xc0e*/
+	
 	/*
 	 * Create identity mapping for first MB of kernel to
 	 * cater for the MMU enable.  This identity mapping
@@ -241,22 +242,22 @@ __create_page_tables:
 	 * counter to determine corresponding section base address.
 	 */
 	mov	r6, pc
-	mov	r6, r6, lsr #20			@ start of kernel section
-	orr	r3, r7, r6, lsl #20		@ flags + kernel base
-	str	r3, [r4, r6, lsl #2]		@ identity mapping
+	mov	r6, r6, lsr #20			@ start of kernel section , r6 = 0x500
+	orr	r3, r7, r6, lsl #20		@ flags + kernel base, r3 =0xc0e | 0x50000000 
+	str	r3, [r4, r6, lsl #2]		@ identity mapping, [0x50000000+ 0x500]= r3(0x50000c0e) 
 
 	/*
 	 * Now setup the pagetables for our kernel direct
 	 * mapped region.
 	 */
-	add	r0, r4,  #(KERNEL_START & 0xff000000) >> 18
-	str	r3, [r0, #(KERNEL_START & 0x00f00000) >> 18]!
-	ldr	r6, =(KERNEL_END - 1)
-	add	r0, r0, #4
-	add	r6, r4, r6, lsr #18
-1:	cmp	r0, r6
-	add	r3, r3, #1 << 20
-	strls	r3, [r0], #4
+	add	r0, r4,  #(KERNEL_START & 0xff000000) >> 18    @KERNEL_START = 0xc0008000, r0 = 0x50007000
+	str	r3, [r0, #(KERNEL_START & 0x00f00000) >> 18]! @ r0 = 0x50007000,  [0x50007000] = 0x50000c0e
+	ldr	r6, =(KERNEL_END - 1) 						@r6 = 0xc0008000+kernel_size-1
+	add	r0, r0, #4  								@r0 = 0x50007004
+	add	r6, r4, r6, lsr #18  							@r6 = 0x50004000 + 0x3000+(kernel_size-1)>>18
+1:	cmp	r0, r6									@ r0 = 0x50007004
+	add	r3, r3, #1 << 20							@r3 += 1<<20(r3 = 0x50000c0e)
+	strls	r3, [r0], #4								@r0 +=4, r0 = r3
 	bls	1b
 
 #ifdef CONFIG_XIP_KERNEL
@@ -281,12 +282,12 @@ __create_page_tables:
 	/*
 	 * Then map first 1MB of ram in case it contains our boot params.
 	 */
-	add	r0, r4, #PAGE_OFFSET >> 18
-	orr	r6, r7, #(PHYS_OFFSET & 0xff000000)
+	add	r0, r4, #PAGE_OFFSET >> 18  				@r0 = 0x50004000 + 0x3000
+	orr	r6, r7, #(PHYS_OFFSET & 0xff000000)			@r6 = 0xc0e | 0x50000000
 	.if	(PHYS_OFFSET & 0x00f00000)
 	orr	r6, r6, #(PHYS_OFFSET & 0x00f00000)
 	.endif
-	str	r6, [r0]
+	str	r6, [r0]									@ [0x50007000] = 0x50000c0e
 
 #ifdef CONFIG_DEBUG_LL
 	ldr	r7, [r10, #PROCINFO_IO_MMUFLAGS] @ io_mmuflags
