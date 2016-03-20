@@ -368,18 +368,18 @@ static struct platform_device s3c24xx_uda134x = {
 static struct mtd_partition friendly_arm_default_nand_part[] = {
 	[0] = {
 		.name	= "supervivi",
-		.size	= 0x00040000,
+		.size	= 0x00100000,  //0x00040000
 		.offset	= 0,
 	},
 	[1] = {
 		.name	= "param",
-		.offset = 0x00040000,
+		.offset = 0x00100000, //0x00040000
 		.size	= 0x00020000,
 	},
 	[2] = {
 		.name	= "Kernel",
-		.offset = 0x00060000,
-		.size	= 0x00500000,
+		.offset = 0x00120000, //0x00060000
+		.size	= 0x00440000, //0x00500000
 	},
 	[3] = {
 		.name	= "root",
